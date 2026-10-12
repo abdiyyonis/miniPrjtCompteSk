@@ -4,8 +4,11 @@
     <meta charset="UTF-8">
     <title>Compteur de frappes</title>
     <style>
-        body { font-family: sans-serif; text-align: center; margin-top: 50px; }
+        /* Ajout d'une transition pour que le changement de couleur soit fluide */
+        body { font-family: sans-serif; text-align: center; margin-top: 50px; transition: background-color 0.5s; }
         .stats { font-size: 24px; margin-top: 20px; font-weight: bold; }
+        /* Style pour le message d'encouragement */
+        #message { margin-top: 30px; font-size: 28px; font-weight: bold; color: white; text-shadow: 1px 1px 2px black; }
     </style>
 </head>
 <body>
@@ -14,17 +17,40 @@
         Espace : <span id="count-space">0</span> | 
         Touche K : <span id="count-k">0</span>
     </div>
+    <div id="message"></div>
 
     <script>
-        // Mettre à jour l'affichage
+        // Nouvelle fonction pour gérer l'affichage dynamique
+        function updateUI(spaceCount) {
+            const body = document.body;
+            const messageDiv = document.getElementById('message');
+            
+            if (spaceCount >= 200) {
+                body.style.backgroundColor = 'red';
+                messageDiv.innerText = "Stop, tu as trop cliqué !";
+            } else if (spaceCount > 150) {
+                body.style.backgroundColor = 'darkgreen';
+                messageDiv.innerText = "Bravo, continue !";
+            } else if (spaceCount > 100) {
+                body.style.backgroundColor = 'green';
+                messageDiv.innerText = "Félicitations, tu as bien fait !";
+            } else {
+                body.style.backgroundColor = 'white';
+                messageDiv.innerText = "";
+            }
+        }
+
         async function fetchCounts() {
             const res = await fetch('/stats');
             const data = await res.json();
-            document.getElementById('count-space').innerText = data.space || 0;
+            const spaceCount = data.space || 0;
+            
+            document.getElementById('count-space').innerText = spaceCount;
             document.getElementById('count-k').innerText = data.k || 0;
+            
+            updateUI(spaceCount); // On met à jour la couleur à chaque vérification
         }
 
-        // Écouter le clavier
         document.addEventListener('keydown', async (event) => {
             let key = null;
             if (event.code === 'Space') key = 'space';
@@ -36,7 +62,6 @@
             }
         });
 
-        // Charger les compteurs au démarrage
         fetchCounts();
     </script>
 </body>
