@@ -2,25 +2,98 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Compteur de frappes</title>
+    <title>Compteur de frappes Multi-Utilisateurs</title>
     <style>
-        /* Ajout d'une transition pour que le changement de couleur soit fluide */
         body { font-family: sans-serif; text-align: center; margin-top: 50px; transition: background-color 0.5s; }
         .stats { font-size: 24px; margin-top: 20px; font-weight: bold; }
-        /* Style pour le message d'encouragement */
         #message { margin-top: 30px; font-size: 28px; font-weight: bold; color: white; text-shadow: 1px 1px 2px black; }
+        .hidden { display: none; }
+        .auth-box, .app-box { border: 1px solid #ccc; padding: 20px; width: 300px; margin: 0 auto; background: white; border-radius: 8px; }
+        .app-box { width: 500px; }
+        input { margin: 10px 0; padding: 8px; width: 90%; }
+        button { padding: 10px; cursor: pointer; margin: 5px; }
     </style>
 </head>
 <body>
-    <h1>Appuie sur Espace ou sur la touche K</h1>
-    <div class="stats">
-        Espace : <span id="count-space">0</span> | 
-        Touche K : <span id="count-k">0</span>
+
+    <!-- Section Connexion / Inscription -->
+    <div id="auth-section" class="auth-box">
+        <h2>Connexion</h2>
+        <input type="text" id="username" placeholder="Nom d'utilisateur">
+        <input type="password" id="password" placeholder="Mot de passe">
+        <button onclick="login()">Se Connecter</button>
+        <button onclick="register()">S'inscrire</button>
+        <p id="auth-error" style="color:red;"></p>
     </div>
+
+    <!-- Section Application (Cachée par défaut) -->
+    <div id="app-section" class="app-box hidden">
+        <h2>Bienvenue, <span id="user-display"></span> !</h2>
+        <p>Appuie sur Espace ou sur la touche K</p>
+        
+        <div class="stats">
+            Espace : <span id="count-space">0</span> | 
+            Touche K : <span id="count-k">0</span>
+        </div>
+        
+        <button onclick="resetCounters()" style="margin-top:20px; background:red; color:white; border:none;">Remettre à zéro</button>
+        <button onclick="logout()">Déconnexion</button>
+    </div>
+    
     <div id="message"></div>
 
     <script>
-        // Nouvelle fonction pour gérer l'affichage dynamique
+        // --- Gestion de l'Authentification ---
+        function getHeaders() {
+            return {
+                'username': localStorage.getItem('username'),
+                'Content-Type': 'application/json'
+            };
+        }
+
+        function checkAuth() {
+            const user = localStorage.getItem('username');
+            if (user) {
+                document.getElementById('auth-section').classList.add('hidden');
+                document.getElementById('app-section').classList.remove('hidden');
+                document.getElementById('user-display').innerText = user;
+                fetchCounts();
+            } else {
+                document.getElementById('auth-section').classList.remove('hidden');
+                document.getElementById('app-section').classList.add('hidden');
+                document.body.style.backgroundColor = 'white';
+                document.getElementById('message').innerText = "";
+            }
+        }
+
+        async function register() {
+            const u = document.getElementById('username').value;
+            const p = document.getElementById('password').value;
+            const res = await fetch('/register', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({username: u, password: p}) });
+            const data = await res.json();
+            if(res.ok) alert(data.message);
+            else document.getElementById('auth-error').innerText = data.detail;
+        }
+
+        async function login() {
+            const u = document.getElementById('username').value;
+            const p = document.getElementById('password').value;
+            const res = await fetch('/login', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({username: u, password: p}) });
+            const data = await res.json();
+            if(res.ok) {
+                localStorage.setItem('username', data.username);
+                checkAuth();
+            } else {
+                document.getElementById('auth-error').innerText = data.detail;
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('username');
+            checkAuth();
+        }
+
+        // --- Gestion de l'Application ---
         function updateUI(spaceCount) {
             const body = document.body;
             const messageDiv = document.getElementById('message');
@@ -41,28 +114,35 @@
         }
 
         async function fetchCounts() {
-            const res = await fetch('/stats');
+            if(!localStorage.getItem('username')) return;
+            const res = await fetch('/stats', { headers: getHeaders() });
             const data = await res.json();
             const spaceCount = data.space || 0;
-            
             document.getElementById('count-space').innerText = spaceCount;
             document.getElementById('count-k').innerText = data.k || 0;
-            
-            updateUI(spaceCount); // On met à jour la couleur à chaque vérification
+            updateUI(spaceCount);
+        }
+
+        async function resetCounters() {
+            await fetch('/reset', { method: 'POST', headers: getHeaders() });
+            fetchCounts();
         }
 
         document.addEventListener('keydown', async (event) => {
+            if(!localStorage.getItem('username')) return; // Ignore si non connecté
+            
             let key = null;
-            if (event.code === 'Space') key = 'space';
+            if (event.code === 'Space') { key = 'space'; event.preventDefault(); }
             if (event.key.toLowerCase() === 'k') key = 'k';
 
             if (key) {
-                await fetch(`/click/${key}`, { method: 'POST' });
+                await fetch(`/click/${key}`, { method: 'POST', headers: getHeaders() });
                 fetchCounts();
             }
         });
 
-        fetchCounts();
+        // Au démarrage de la page
+        checkAuth();
     </script>
 </body>
 </html>
