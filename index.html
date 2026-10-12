@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Compteur de frappes</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; margin-top: 50px; }
+        .stats { font-size: 24px; margin-top: 20px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>Appuie sur Espace ou sur la touche K</h1>
+    <div class="stats">
+        Espace : <span id="count-space">0</span> | 
+        Touche K : <span id="count-k">0</span>
+    </div>
+
+    <script>
+        // Mettre à jour l'affichage
+        async function fetchCounts() {
+            const res = await fetch('/stats');
+            const data = await res.json();
+            document.getElementById('count-space').innerText = data.space || 0;
+            document.getElementById('count-k').innerText = data.k || 0;
+        }
+
+        // Écouter le clavier
+        document.addEventListener('keydown', async (event) => {
+            let key = null;
+            if (event.code === 'Space') key = 'space';
+            if (event.key.toLowerCase() === 'k') key = 'k';
+
+            if (key) {
+                await fetch(`/click/${key}`, { method: 'POST' });
+                fetchCounts();
+            }
+        });
+
+        // Charger les compteurs au démarrage
+        fetchCounts();
+    </script>
+</body>
+</html>

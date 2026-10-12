@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: compteur_db
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432" # Optionnel : permet d'inspecter la DB depuis ton PC
+
+  app:
+    build: .
+    restart: always
+    environment:
+      # C'est ICI que l'on connecte FastAPI à Postgres.
+      # Remarque : le nom d'hôte est "db" (le nom du service au-dessus), pas "localhost"
+      - DATABASE_URL=postgresql://postgres:password@db:5432/compteur_db
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+
+volumes:
+  pgdata:
+    # Ce volume permet de ne pas perdre les données si le conteneur Postgres est détruit

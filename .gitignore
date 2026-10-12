@@ -1,0 +1,17 @@
+# Fichiers de cache Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environnements virtuels (si tu en utilises un jour hors Docker)
+venv/
+env/
+.venv/
+
+# Fichiers d'environnement (Sécurité DevOps : on ne pousse JAMAIS ses secrets)
+.env
+
+# Fichiers liés au système d'exploitation et IDE
+.DS_Store
+.vscode/
+.idea/
