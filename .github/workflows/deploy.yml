@@ -1,0 +1,31 @@
+name: CI/CD Pipeline DevOps
+
+on:
+  push:
+    branches: [ main ] # Le pipeline se lance uniquement quand tu pousses sur "main"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest # Le robot GitHub utilise un conteneur Ubuntu temporaire
+    steps:
+      - name: 1. Checkout du code
+        uses: actions/checkout@v3
+
+      - name: 2. Copier les fichiers sur le serveur Debian
+        uses: appleboy/scp-action@v0.1.4
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "."
+          target: "/home/${{ secrets.SERVER_USER }}/mini-projet-devops"
+
+      - name: 3. Lancer Docker sur le serveur
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /home/${{ secrets.SERVER_USER }}/mini-projet-devops
+            docker compose up -d --build
